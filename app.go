@@ -6,6 +6,8 @@ import (
 	"os"
 )
 
+type HandlerFunc func(ctx *Context)
+
 type App struct {
 	mux *http.ServeMux
 }
@@ -14,6 +16,16 @@ func New() *App {
 	return &App{
 		mux: http.NewServeMux(),
 	}
+}
+
+func (app *App) Handle(pattern string, handler HandlerFunc) {
+	app.mux.HandleFunc(pattern, func(w http.ResponseWriter, r *http.Request) {
+		ctx := &Context{
+			Writer:   w,
+			Resquest: r,
+		}
+		handler(ctx)
+	})
 }
 
 func (app *App) Run(addr ...string) {
