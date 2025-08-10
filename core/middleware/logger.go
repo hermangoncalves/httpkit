@@ -4,11 +4,11 @@ import (
 	"log"
 	"time"
 
-	"github.com/hermangoncalves/httpkit"
+	"github.com/hermangoncalves/httpkit/core"
 )
 
-func Logging(next httpkit.HandlerFunc) httpkit.HandlerFunc {
-	return func(ctx *httpkit.Context) {
+func Logging(next core.HandlerFunc) core.HandlerFunc {
+	return func(ctx *core.Context) {
 		start := time.Now()
 
 		next(ctx) // call next handler

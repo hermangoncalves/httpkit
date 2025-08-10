@@ -1,4 +1,4 @@
-package httpkit
+package core
 
 import (
 	"fmt"
