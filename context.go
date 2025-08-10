@@ -2,12 +2,14 @@ package httpkit
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
+	"strings"
 	"time"
 )
 
 type Context struct {
-	Writer   http.ResponseWriter
+	Writer  http.ResponseWriter
 	Request *http.Request
 }
 
@@ -93,4 +95,21 @@ func (ctx *Context) GetStringSlice(key any) []string {
 
 func (ctx *Context) GetStringMap(key any) map[string]any {
 	return getTyped[map[string]any](ctx, key)
+}
+
+func (ctx *Context) DecodeJSON(obj any) error {
+	contentType := ctx.Request.Header.Get("Content-Type")
+	if !strings.HasPrefix(strings.ToLower(contentType), "application/json") {
+		return errors.New("content-type is not application/json")
+	}
+
+	if ctx.Request.Body == nil {
+		return errors.New("empty request body")
+	}
+
+	if err := json.NewDecoder(ctx.Request.Body).Decode(obj); err != nil {
+		return err
+	}
+
+	return nil
 }
