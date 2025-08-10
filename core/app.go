@@ -6,23 +6,35 @@ import (
 	"os"
 )
 
+type Middleware func(HandlerFunc) HandlerFunc
 type HandlerFunc func(ctx *Context)
 
 type App struct {
-	mux *http.ServeMux
+	mux         *http.ServeMux
+	middlewares []Middleware
 }
 
 func New() *App {
 	return &App{
-		mux: http.NewServeMux(),
+		mux:         http.NewServeMux(),
+		middlewares: make([]Middleware, 0),
 	}
 }
 
+func (app *App) Use(middleware Middleware) {
+	app.middlewares = append(app.middlewares, middleware)
+}
+
 func (app *App) Handle(pattern string, handler HandlerFunc) {
+	for i := len(app.middlewares) - 1; i >= 0; i-- {
+		handler = app.middlewares[i](handler)
+	}
+
 	app.mux.HandleFunc(pattern, func(w http.ResponseWriter, r *http.Request) {
 		ctx := &Context{
-			Writer:   w,
-			Resquest: r,
+			Writer:  w,
+			Request: r,
+			Plugins: make(map[string]any),
 		}
 		handler(ctx)
 	})

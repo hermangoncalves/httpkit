@@ -3,6 +3,7 @@ package httpkit
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -11,6 +12,7 @@ import (
 type Context struct {
 	Writer  http.ResponseWriter
 	Request *http.Request
+	Plugins map[string]any
 }
 
 type H map[string]any
@@ -112,4 +114,12 @@ func (ctx *Context) DecodeJSON(obj any) error {
 	}
 
 	return nil
+}
+
+func GetPlugin[T any](ctx *Context, pluginName string) T {
+	plugin, ok := ctx.Plugins[pluginName].(T)
+	if !ok {
+		fmt.Println("Not found")
+	}
+	return plugin
 }
