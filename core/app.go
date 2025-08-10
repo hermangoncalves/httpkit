@@ -40,6 +40,10 @@ func (app *App) Handle(pattern string, handler HandlerFunc) {
 	})
 }
 
+func (app *App) RegisterPlugin(p Plugin) {
+	app.Use(p.Middleware())
+}
+
 func (app *App) Run(addr ...string) {
 	address := resolveAddress(addr)
 	fmt.Printf("Server is running on port %s\n", address)
