@@ -8,5 +8,5 @@ type Plugin interface {
 
 	// Middleware returns the Middleware function that the plugin uses.
 	// This middleware will be executed as part of the request handling chain.
-	Plugin() Middleware
+	Middleware() Middleware
 }

@@ -42,25 +42,17 @@ type HandlerFunc func(ctx *Context)
 // It contains an http.ServeMux for routing and a slice of middlewares
 // that are applied to handlers.
 type App struct {
-	mux         *http.ServeMux
-	middlewares []Middleware
+	mux     *http.ServeMux
+	plugins []Plugin
 }
 
 // New creates and returns a new App instance with an initialized
 // ServeMux and an empty middleware chain.
 func New() *App {
 	return &App{
-		mux:         http.NewServeMux(),
-		middlewares: make([]Middleware, 0),
+		mux:     http.NewServeMux(),
+		plugins: make([]Plugin, 0),
 	}
-}
-
-// Use appends a middleware to the application's middleware chain.
-//
-// Execution order: the first middleware registered will be the first
-// to run for each request (outermost in the wrapping order).
-func (app *App) Use(middleware Middleware) {
-	app.middlewares = append(app.middlewares, middleware)
 }
 
 // Handle registers a handler for the given pattern.
@@ -68,10 +60,10 @@ func (app *App) Use(middleware Middleware) {
 // before it is registered in the internal ServeMux.
 //
 // The pattern follows the rules of net/http ServeMux.
-func (app *App) Handle(pattern string, handler HandlerFunc, plugins ...Middleware) {
-	middlewares := append(app.middlewares, plugins...)
-	for i := len(middlewares) - 1; i >= 0; i-- {
-		handler = middlewares[i](handler)
+func (app *App) Handle(pattern string, handler HandlerFunc, plugin ...Plugin) {
+	plugins := append(app.plugins, plugin...)
+	for i := len(plugins) - 1; i >= 0; i-- {
+		handler = plugins[i].Middleware()(handler)
 	}
 
 	app.mux.HandleFunc(pattern, func(w http.ResponseWriter, r *http.Request) {
@@ -87,8 +79,8 @@ func (app *App) Handle(pattern string, handler HandlerFunc, plugins ...Middlewar
 // RegisterPlugin registers a Plugin by adding its Middleware to the
 // application's middleware chain. Plugins must implement the Plugin
 // interface (Name, Middleware).
-func (app *App) RegisterPlugin(p Plugin) {
-	app.Use(p.Plugin())
+func (app *App) RegisterPlugin(plugin Plugin) {
+	app.plugins = append(app.plugins, plugin)
 }
 
 // Run starts the HTTP server and blocks the current goroutine.

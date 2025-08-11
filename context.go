@@ -137,7 +137,7 @@ func (ctx *Context) DecodeJSON(obj any) error {
 
 // GetPlugin retrieves a plugin instance of type T from the context's plugin storage by name.
 // If the plugin is not found or has a wrong type, it returns the zero value of T and logs "Not found".
-func GetPlugin[T any](ctx *Context, pluginName string) T {
+func GetPlugin[T Plugin](ctx *Context, pluginName string) T {
 	plugin, ok := ctx.Plugins[pluginName].(T)
 	if !ok {
 		fmt.Println("Not found")
