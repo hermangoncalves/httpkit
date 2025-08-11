@@ -1,4 +1,4 @@
-package core
+package httpkit
 
 type Plugin interface {
 	Name() string
