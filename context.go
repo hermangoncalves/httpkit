@@ -9,29 +9,42 @@ import (
 	"time"
 )
 
+// Context represents the context of an HTTP request within the httpkit framework.
+// It wraps the standard http.ResponseWriter and *http.Request, and provides
+// convenient methods for reading request data, writing responses, and accessing plugins.
 type Context struct {
 	Writer  http.ResponseWriter
 	Request *http.Request
 	Plugins map[string]any
 }
 
+// H is a shortcut alias for map[string]any, useful for JSON responses and generic maps.
 type H map[string]any
 
+// JSON sends a JSON response with the given status code and serializes the obj parameter.
+// It sets the Content-Type header to "application/json".
 func (ctx *Context) JSON(code int, obj any) {
 	ctx.Writer.WriteHeader(code)
 	ctx.Writer.Header().Set("Content-type", "application/json")
 	json.NewEncoder(ctx.Writer).Encode(obj)
 }
 
+// Query returns the value of the URL query parameter with the given key.
+// If the parameter is not present, it returns an empty string.
 func (ctx *Context) Query(key string) string {
 	values := ctx.Request.URL.Query()
 	return values.Get(key)
 }
 
+// Param retrieves a path parameter by name.
+// NOTE: This requires your routing layer to support path parameters and set them accordingly.
+// Replace ctx.Request.PathValue with your router's actual method for fetching path params.
 func (ctx *Context) Param(name string) string {
 	return ctx.Request.PathValue(name)
 }
 
+// getTyped is a generic helper function to retrieve a typed value from the Context
+// by extracting it from the underlying request context values.
 func getTyped[T any](ctx *Context, key any) (result T) {
 	if val := ctx.Get(key); val != nil {
 		result, _ = val.(T)
@@ -39,9 +52,13 @@ func getTyped[T any](ctx *Context, key any) (result T) {
 	return
 }
 
+// Get retrieves a value stored in the request context by the given key.
+// It returns the value as an empty interface{} which you must type-assert.
 func (ctx *Context) Get(key any) any {
 	return ctx.Request.Context().Value(key)
 }
+
+// The following Get* methods are type-safe wrappers around Get for common Go types.
 
 func (ctx *Context) GetString(key any) string {
 	return getTyped[string](ctx, key)
@@ -99,6 +116,8 @@ func (ctx *Context) GetStringMap(key any) map[string]any {
 	return getTyped[map[string]any](ctx, key)
 }
 
+// DecodeJSON attempts to parse the request body as JSON into the provided obj.
+// Returns an error if Content-Type is not application/json, the body is empty, or decoding fails.
 func (ctx *Context) DecodeJSON(obj any) error {
 	contentType := ctx.Request.Header.Get("Content-Type")
 	if !strings.HasPrefix(strings.ToLower(contentType), "application/json") {
@@ -116,6 +135,8 @@ func (ctx *Context) DecodeJSON(obj any) error {
 	return nil
 }
 
+// GetPlugin retrieves a plugin instance of type T from the context's plugin storage by name.
+// If the plugin is not found or has a wrong type, it returns the zero value of T and logs "Not found".
 func GetPlugin[T any](ctx *Context, pluginName string) T {
 	plugin, ok := ctx.Plugins[pluginName].(T)
 	if !ok {
