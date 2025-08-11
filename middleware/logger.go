@@ -11,7 +11,7 @@ func Logging(next httpkit.HandlerFunc) httpkit.HandlerFunc {
 	return func(ctx *httpkit.Context) {
 		start := time.Now()
 
-		next(ctx) // call next handler
+		next(ctx)
 
 		duration := time.Since(start)
 		log.Printf(
