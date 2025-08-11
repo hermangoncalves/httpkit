@@ -9,42 +9,58 @@ import (
 	"time"
 )
 
-// Context represents the context of an HTTP request within the httpkit framework.
-// It wraps the standard http.ResponseWriter and *http.Request, and provides
-// convenient methods for reading request data, writing responses, and accessing plugins.
+// Context represents the context of an HTTP request in the httpkit framework.
+// It wraps Go's standard http.ResponseWriter and *http.Request,
+// and adds a plugin store for sharing data or functionality between middleware and handlers.
 type Context struct {
 	Writer  http.ResponseWriter
 	Request *http.Request
 	Plugins map[string]any
 }
 
-// H is a shortcut alias for map[string]any, useful for JSON responses and generic maps.
+// H is a shorthand for map[string]any.
+// It is commonly used to construct JSON responses or generic key-value maps.
+//
+// Example:
+//
+//	ctx.JSON(http.StatusOK, httpkit.H{"message": "Hello, world"})
 type H map[string]any
 
-// JSON sends a JSON response with the given status code and serializes the obj parameter.
-// It sets the Content-Type header to "application/json".
+// JSON writes the given object as a JSON response with the specified HTTP status code.
+//
+// Example:
+//
+//	ctx.JSON(http.StatusOK, httpkit.H{"status": "success"})
 func (ctx *Context) JSON(code int, obj any) {
 	ctx.Writer.WriteHeader(code)
 	ctx.Writer.Header().Set("Content-type", "application/json")
 	json.NewEncoder(ctx.Writer).Encode(obj)
 }
 
-// Query returns the value of the URL query parameter with the given key.
+// Query retrieves the value of a query string parameter from the request URL.
 // If the parameter is not present, it returns an empty string.
+//
+// Example:
+//
+//	// GET /search?q=golang
+//	query := ctx.Query("q") // returns "golang"
 func (ctx *Context) Query(key string) string {
 	values := ctx.Request.URL.Query()
 	return values.Get(key)
 }
 
-// Param retrieves a path parameter by name.
-// NOTE: This requires your routing layer to support path parameters and set them accordingly.
-// Replace ctx.Request.PathValue with your router's actual method for fetching path params.
+// Param retrieves the value of a path parameter from the request URL.
+// Path parameters require Go 1.22+ with the new ServeMux pattern syntax.
+//
+// Example:
+//
+//	// Registered pattern: /users/{id}
+//	// Request: GET /users/42
+//	id := ctx.Param("id") // returns "42"
 func (ctx *Context) Param(name string) string {
 	return ctx.Request.PathValue(name)
 }
 
-// getTyped is a generic helper function to retrieve a typed value from the Context
-// by extracting it from the underlying request context values.
 func getTyped[T any](ctx *Context, key any) (result T) {
 	if val := ctx.Get(key); val != nil {
 		result, _ = val.(T)
@@ -52,13 +68,9 @@ func getTyped[T any](ctx *Context, key any) (result T) {
 	return
 }
 
-// Get retrieves a value stored in the request context by the given key.
-// It returns the value as an empty interface{} which you must type-assert.
 func (ctx *Context) Get(key any) any {
 	return ctx.Request.Context().Value(key)
 }
-
-// The following Get* methods are type-safe wrappers around Get for common Go types.
 
 func (ctx *Context) GetString(key any) string {
 	return getTyped[string](ctx, key)
@@ -116,8 +128,17 @@ func (ctx *Context) GetStringMap(key any) map[string]any {
 	return getTyped[map[string]any](ctx, key)
 }
 
-// DecodeJSON attempts to parse the request body as JSON into the provided obj.
-// Returns an error if Content-Type is not application/json, the body is empty, or decoding fails.
+// DecodeJSON reads and decodes a JSON request body into the provided destination object.
+//
+// Example:
+//
+//	var data struct {
+//	    Name string `json:"name"`
+//	}
+//	if err := ctx.DecodeJSON(&data); err != nil {
+//	    ctx.JSON(http.StatusBadRequest, httpkit.H{"error": err.Error()})
+//	    return
+//	}
 func (ctx *Context) DecodeJSON(obj any) error {
 	contentType := ctx.Request.Header.Get("Content-Type")
 	if !strings.HasPrefix(strings.ToLower(contentType), "application/json") {
@@ -135,12 +156,23 @@ func (ctx *Context) DecodeJSON(obj any) error {
 	return nil
 }
 
-// GetPlugin retrieves a plugin instance of type T from the context's plugin storage by name.
-// If the plugin is not found or has a wrong type, it returns the zero value of T and logs "Not found".
-func GetPlugin[T Plugin](ctx *Context, pluginName string) T {
+// GetPlugin retrieves a registered plugin of the specified type from the context's plugin store.
+// It returns the plugin instance if found and correctly typed, otherwise it returns the zero value of T.
+//
+// Example:
+//
+//	logger, err := httpkit.GetPlugin[*LoggerPlugin](ctx, "logger")
+//	if err != nil {
+//	    // Handle missing or wrong type plugin.
+//	    log.Println(err)
+//	    return
+//	}
+//	logger.Info("Processing request")
+func GetPlugin[T Plugin](ctx *Context, pluginName string) (T, error) {
 	plugin, ok := ctx.Plugins[pluginName].(T)
 	if !ok {
-		fmt.Println("Not found")
+		var zero T
+		return zero, fmt.Errorf("plugin %q not found or wrong type", pluginName)
 	}
-	return plugin
+	return plugin, nil
 }
