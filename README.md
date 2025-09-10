@@ -7,7 +7,17 @@ Focus: **clean developer experience, minimal API surface, no reinvention**.
 
 ---
 
-## ✨ Features
+## Case Study
+
+When building HTTP services in Go, I often ran into the same problem: too much repetitive code just to parse JSON, handle errors, or write responses. It made APIs noisy and harder to maintain.  
+
+To make this smoother, I created **httpkit** — a tiny library that keeps the Go standard library and routers like chi in the center, but removes the boring boilerplate. It introduces a unified handler signature, JSON helpers, and structured error handling, so developers can focus on business logic instead of wiring.  
+
+The result is cleaner APIs, less code to maintain (roughly 30% fewer lines in typical handlers), and a developer experience that feels consistent without adding yet another heavy framework.
+
+---
+
+## Features
 
 - **Unified handler signature**: `func(*httpkit.Context) error`
 - **Wrapper**: `httpkit.Wrap` turns your handler into `http.HandlerFunc`
@@ -18,7 +28,7 @@ Focus: **clean developer experience, minimal API surface, no reinvention**.
 
 ---
 
-## 🚀 Quickstart
+## Quickstart
 
 ```go
 package main
@@ -54,8 +64,6 @@ func main() {
 	
 	log.Fatal(kit.Run())
 }
-
-
 ````
 
 Run it:
@@ -67,7 +75,7 @@ curl -X POST localhost:8080/hello -d '{"name":"world"}' -H 'Content-Type: applic
 
 ---
 
-## 📐 Philosophy
+## Philosophy
 
 * Do not reinvent routers or middlewares — reuse `chi`, `net/http`, or other libraries.
 * Reduce boilerplate for JSON, error handling, and testing.
@@ -76,7 +84,7 @@ curl -X POST localhost:8080/hello -d '{"name":"world"}' -H 'Content-Type: applic
 
 ---
 
-## 🛠 Roadmap
+## Roadmap
 
 * [x] Context + HandlerFunc
 * [x] Wrap
@@ -86,6 +94,6 @@ curl -X POST localhost:8080/hello -d '{"name":"world"}' -H 'Content-Type: applic
 
 ---
 
-## 📜 License
+## License
 
 MIT
